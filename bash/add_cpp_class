@@ -1,0 +1,122 @@
+#!/bin/bash
+if [ "$1" == "-h" ]; then	
+	printf "\nCreate a c++ class and add it to CMakeLists.txt\n"
+	printf "The script will ask questions to define the C++ class.\n"
+	printf -- "------------------------other_name.h---------------------"
+	printf "
+namespace some_name {
+
+	class Other_name {
+	public:
+
+	};
+
+} // some_name.
+
+#endif // CLASS_NAME_H\n"
+	printf -- "---------------------------------------------------------\n"
+	printf -- "------------------------other_name.cpp-------------------"
+	printf "
+#include \"$header_file\"
+
+namespace some_name {
+
+} // some_name.\n"
+	printf -- "---------------------------------------------------------\n"
+	
+	exit 0
+fi
+
+
+main() {
+	printf "class name: "
+	read class_name
+	if [ -z "$class_name" ]; then
+		printf "Aborted, no class name"
+		exit 1
+	fi
+	printf "namespace []: "
+	read namespace	
+	
+	printf "Add cpp file [y/N]? "
+	read add_cpp
+	
+	printf "source folder [src]: "
+	read src_folder
+	if [ -z "$src_folder" ]; then
+		src_folder="src"
+	fi
+	
+	printf "keyword [set(SOURCES]: "
+	read keyword
+	if [ -z "$keyword" ]; then
+		keyword="set(SOURCES"
+	fi
+	
+	header_file="$src_folder/${class_name,,}.h"
+	cpp_file="$src_folder/${class_name,,}.cpp"
+	
+	if [ -f "$header_file" ]; then
+		printf "$header_file exist, abort" >&2
+		exit 1
+	fi
+	
+	if [ -f "$cpp_file" ]; then
+		printf "$cpp_file exist, abort" >&2
+		exit 1
+	fi
+		
+	if [ -z "$namespace" ]; then
+		printf "#ifndef ${class_name^^}_H
+#define ${class_name^^}_H
+
+class $class_name {
+public:
+
+};
+
+#endif // ${class_name^^}_H
+" > "$header_file"
+	else
+		printf "#ifndef ${class_name^^}_H
+#define ${class_name^^}_H
+
+namespace $namespace {
+
+	class $class_name {
+	public:
+
+	};
+
+} // $namespace.
+	
+#endif // ${class_name^^}_H
+" > "$header_file"
+	fi	
+	
+	case $add_cpp in
+		[yY])
+			if [ -z "$namespace" ]; then
+				printf "#include \"$header_file\"
+" > "$cpp_file"
+			else
+				printf "#include \"$header_file\"
+
+namespace $namespace {
+
+} // $namespace.
+" > "$cpp_file"
+			fi
+			;;
+		*)
+			printf ""
+			;;
+	esac
+	
+	cp "CMakeLists.txt" "CMakeLists.txt.backup"
+
+	./add_source_file_to_cmake "$header_file" "$keyword"
+	./add_source_file_to_cmake "$cpp_file" "$keyword"
+}
+
+main $@

@@ -1,0 +1,101 @@
+#!/bin/bash
+if [ "$1" == "-h" ]; then
+	printf "\nReads a cmake file and adds a file to the list defined by the keyword.\n"
+	printf "And prints the new content.\n"
+	printf "Usage: `basename $0` [filename] [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt'] \n"
+	printf "E.g.     \$ $0 'set(SOURCES' \n\n"
+	exit 0
+fi
+
+if [ -z "$1" ]; then
+	printf "$0 error, missing 1:st argument." >&2
+	exit 1
+else
+	filename=$1
+fi
+
+if [ -z "$2" ]; then
+	keyword="set(SOURCES"
+else
+	keyword=$2
+fi
+
+if [ -z "$3" ]; then
+	cmake_file="CMakeLists.txt"	
+else
+	cmake_file=$3
+fi
+
+add_filename_to_list () {
+	local filename=$1
+	local keyword=$2
+	local cmake_file=$3
+	local found_sources=0
+	local sources=""
+	
+	while read -r line ; do
+		if [[ $found_sources == 1 ]];then
+			if [[ $line == *")"* ]];then
+				line=$(printf "$line" | cut -d ")" -f1)
+				if [ -n "$line" ];then					
+					sources="$sources\n$line"
+				fi
+				break
+			else
+				sources="$sources\n$line"
+			fi
+		fi
+		if [[ $line == *"$keyword"* ]];then
+			found_sources=1
+		fi
+	done <"$cmake_file"
+	
+	# Add filename to list.
+	sources="$sources\n$filename\n"
+	
+	printf "$sources"
+}
+
+replace_sources() {
+	local new_sources=$1	
+	local keyword=$2
+	local cmake_file=$3
+	
+	local found_sources=0
+	
+	IFS=$'\n'
+	
+	local content=""
+	
+	while read -r line ; do
+		if [[ $line == *"$keyword"* ]];then
+			found_sources=1
+			content="$content\n$keyword\n$new_sources\n)"
+		fi
+		if [[ $found_sources == 1 ]];then
+			if [[ $line == *")"* ]];then
+				found_sources=0
+			fi
+		else
+			if [ -z "$content" ]; then
+				content="$line"
+			else
+				content="$content\n$line"
+			fi
+		fi
+	done <"$cmake_file"
+	
+	printf "$content" > "$cmake_file"
+}
+
+main() {
+	# Remove empty lines.
+	local new_sources=$(add_filename_to_list "$filename" "$keyword" "$cmake_file" | sed '/^$/d' | sort -u)
+	# Add tabs to source list.
+	local new_sources=$(printf "$new_sources" | sed -e 's/^/\t/')
+	new_sources=$(printf "$new_sources")
+	
+	replace_sources "$new_sources" "$keyword" "$cmake_file"
+}
+
+main $@
