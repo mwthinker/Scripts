@@ -1,0 +1,63 @@
+#!/bin/bash
+if [ "$1" == "-h" ]; then
+	printf "\nCreate a new C++ project using CMake. \n"
+	printf "Usage: `basename $0` [project_name]\n\n"
+	exit 0
+fi
+
+if [ -z "$1" ]; then
+	printf "$0 error, missing 1:st argument." >&2
+	exit 1
+else
+	project_name=$1
+fi
+
+main() {
+	src_folder="src"
+
+	local cmake_str="cmake_minimum_required(VERSION 3.6)
+project($project_name)
+set(CMAKE_MODULE_PATH \${CMAKE_MODULE_PATH} \${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/)
+if (NOT MSVC)
+	set(CMAKE_CXX_FLAGS \"-std=c++14\")
+	option(Debug \"Set projects to debug mode.\")
+	if (Debug)
+		set(CMAKE_BUILD_TYPE \"Debug\" CACHE INTERNAL \"Build type.\")
+		add_definitions(-D_DEBUG)
+	else ()
+		set(CMAKE_BUILD_TYPE \"Release\" CACHE INTERNAL \"Build type.\")
+	endif ()
+endif ()
+
+# Source files.
+set(SOURCES
+	$src_folder/main.cpp
+)
+
+include_directories($src_folder)
+		
+add_executable($project_name \${SOURCES})
+
+file(COPY data/. DESTINATION \${CMAKE_CURRENT_BINARY_DIR}) # Copy data to build folder.
+"
+
+	mkdir "$project_name"
+	cd "$project_name"
+	mkdir "$src_folder"
+	mkdir "data"
+	
+	mkdir "cmake"
+	mkdir "cmake/modules"
+	
+	printf "$cmake_str" > CMakeLists.txt
+	
+	local cpp_str="
+int main(int argc, char** argv) {
+	
+}\n"
+	printf "$cpp_str" > "$src_folder/main.cpp"
+	
+	cd -
+}
+
+main $@
