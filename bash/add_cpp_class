@@ -92,15 +92,20 @@ namespace $namespace {
 	
 #endif // ${class_name^^}_H
 " > "$header_file"
-	fi	
+	fi
+	
+	cp "CMakeLists.txt" "CMakeLists.txt.backup"
+
+	add_source_file_to_cmake "$header_file" "$keyword"
 	
 	case $add_cpp in
 		[yY])
+			add_source_file_to_cmake "$cpp_file" "$keyword"
 			if [ -z "$namespace" ]; then
-				printf "#include \"$header_file\"
+				printf "#include \"${class_name,,}.h\"
 " > "$cpp_file"
 			else
-				printf "#include \"$header_file\"
+				printf "#include \"${class_name,,}.h\"
 
 namespace $namespace {
 
@@ -112,11 +117,6 @@ namespace $namespace {
 			printf ""
 			;;
 	esac
-	
-	cp "CMakeLists.txt" "CMakeLists.txt.backup"
-
-	./add_source_file_to_cmake "$header_file" "$keyword"
-	./add_source_file_to_cmake "$cpp_file" "$keyword"
 }
 
 main $@

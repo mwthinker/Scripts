@@ -85,7 +85,7 @@ replace_sources() {
 		fi
 	done <"$cmake_file"
 	
-	printf "$content" > "$cmake_file"
+	printf "$content\n" > "$cmake_file"
 }
 
 main() {
