@@ -1,0 +1,77 @@
+#!/bin/bash
+
+display_help() {
+	printf "\n%s\n" "Creates a image atlas and a json file defining all sprites in pixi format."
+	printf "%s\n" "First non-flag and belonging argument is the image files to create the atlas of."
+	
+	printf "\n%s\n" "E.g. usage: create_atlas -p 30 -a TEST.png -j hej.json *.png"
+	
+	printf "\n%s\t%s%s\n" "-e | --expand" "If margin is greater than 0, then expand sprites whose file names match the expression in EXPAND by mirroring their edges." \
+	" This is useful for textures that will be used with OpenGL/WebGL's CLAMPTOEDGE."
+	printf "%s\t%s\n" "-p | --padding" "padding default is 0."
+	printf "%s\t%s\n" "-a | --atlas" 'should be the name of the created atlas, default "atlas.png".'
+	printf "%s\t%s\n" "-j | --json" "the name of the created json-file, default is the same name as the image. "
+	printf "%s\t%s\n" "-m | --min" "the min-size for widht/height in pixels, default is 0."
+	printf "%s\t%s\n\n" "-M | --max" "the max-height in pixels, default is 0."
+}
+
+while :; do
+    case "$1" in
+		-e | --expand)
+			EXPAND="$2"
+			shift 2
+			;;
+		-p | --padding)
+			MARGIN="$2"
+			shift 2
+			;;
+		-a | --atlas)
+			ATLAS="$2"
+			shift 2
+			;;
+		-j | --json)
+			JSON_FILE="$2"
+			shift 2
+			;;
+		-m | --min)
+			MIN_SIZE="$2"
+			shift 2
+			;;
+		-M | --max)
+			MAX_SIZE="$2"
+			shift 2
+			;;
+		-v | --verbose)
+			VERBOSE="Verbose"
+			shift 2
+			;;
+		-h | --help)
+			display_help
+			exit 0
+			;;
+		--) # End of all options
+			shift
+			break
+			;;
+		-*)
+			printf "Error: Unknown option: $1\n" >&2
+			exit 1
+			;;
+		*)  # No more options
+			FILES=$@
+			shift
+			break
+    esac
+done
+
+main() {
+	ATLAS=${ATLAS:-'atlas.png'}
+	local tmp_json=$(echo "$ATLAS" | cut -d '.' -f1)
+	JSON_FILE=${JSON_FILE:-"$tmp_json.json"}
+	MARGIN=${MARGIN:-0}
+	MAX_SIZE=${MAX_SIZE:-2048}
+	MIN_SIZE=${MIN_SIZE:-0}
+	MARGIN=$MARGIN ATLAS=$ATLAS EXPAND=$EXPAND MAX_SIZE=$MAX_SIZE MIN_SIZE=$MIN_SIZE mkatlas $FILES > "$JSON_FILE"
+}
+
+main $@

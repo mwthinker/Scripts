@@ -37,7 +37,7 @@ add_filename_to_list () {
 		if [[ $found_sources == 1 ]];then
 			if [[ $line == *")"* ]];then
 				line=$(printf "$line" | cut -d ")" -f1)
-				if [ -n "$line" ];then					
+				if [ -n "$line" ];then
 					sources="$sources\n$line"
 				fi
 				break
