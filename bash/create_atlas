@@ -12,7 +12,7 @@ display_help() {
 	printf "%s\t%s\n" "-a | --atlas" 'should be the name of the created atlas, default "atlas.png".'
 	printf "%s\t%s\n" "-j | --json" "the name of the created json-file, default is the same name as the image. "
 	printf "%s\t%s\n" "-m | --min" "the min-size for widht/height in pixels, default is 0."
-	printf "%s\t%s\n\n" "-M | --max" "the max-height in pixels, default is 0."
+	printf "%s\t%s\n\n" "-M | --max" "the max-height in pixels, default is 2048."
 }
 
 while :; do
