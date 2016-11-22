@@ -1,10 +1,10 @@
 #!/bin/bash
 
 display_help() {
-	printf "\n%s\n" "Creates a image atlas and a json file defining all sprites in pixi format."
-	printf "%s\n" "First non-flag and belonging argument is the image files to create the atlas of."
+	printf "\n%s\n" "Creates a image atlas and a json file defining all sprites in pixi format.
+First non-flag and belonging argument is the image files to create the atlas of.
 	
-	printf "\n%s\n" "E.g. usage: create_atlas -p 30 -a TEST.png -j hej.json *.png"
+E.g. usage: create_atlas -p 30 -a TEST.png -j hej.json *.png"
 	
 	printf "\n%s\t%s%s\n" "-e | --expand" "If margin is greater than 0, then expand sprites whose file names match the expression in EXPAND by mirroring their edges." \
 	" This is useful for textures that will be used with OpenGL/WebGL's CLAMPTOEDGE."

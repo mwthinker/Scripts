@@ -1,0 +1,312 @@
+#!/bin/bash
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	printf "%s\n\n" "Create a helper clas for using shaders in opengl using C++ and MwLibrary2.
+Usage: $(basename $0) [source_dir] [namespace] [vertex_shader_file] [fragment_shader_file]
+E.g: \$ $0 src/mw mw data/graphic.fra.glsl data/graphic.ver.glsl"
+	exit 0
+fi
+
+tmp_h_file=$(mktemp)
+tmp_cpp_file=$(mktemp)
+
+function cleanup {
+	rm -rf "$tmp_h_file"
+	rm -rf "$tmp_cpp_file"
+}
+
+# register the cleanup function to be called on the EXIT signal
+trap cleanup EXIT
+
+calculate_vertex_size() {
+	local vertex_shader=$1	
+	local vertex_size=0
+	
+	while read -r line ; do
+		case $(echo "$line" | cut -d ' ' -f2) in
+			vec2)
+				(( vertex_size+=2 ))
+				;;
+			vec3)
+				(( vertex_size+=3 ))
+				;;
+			vec4)
+				(( vertex_size+=4 ))
+				;;
+			float)
+				(( vertex_size+=1 ))
+				;;
+			mat4)
+				(( vertex_size+=4*4 ))
+				;;
+		esac
+	done < <(grep attribute "$vertex_shader")
+	
+	printf "$vertex_size"
+}
+
+uniform_function_h() {
+	local type=$1
+	local variable=$2
+
+	case $type in
+		vec2)
+			printf "\t\t%s\n" "void set${variable}(float x, float y) const;"
+			;;
+		vec3)
+			printf "\t\t%s\n" "void set${variable}(float x, float y, float z) const;"
+			;;
+		vec4)
+			printf "\t\t%s\n" "void set${variable}(float x, float y, float z, float w) const;"
+			;;
+		float)
+			printf "\t\t%s\n" "void set${variable}(float value) const;" >> tmp_h_file
+			;;
+		mat4)
+			printf "\t\t%s\n" "void set${variable}(const mw::Matrix44<float>& matrix) const;"
+			;;
+		sampler2D)
+			# Skip.
+			;;
+		*)
+			printf "\t\t%s\n" "Undefined uniform $variable" >&2
+			;;
+	esac
+}
+
+uniform_function_cpp() {
+	local class_name=$1
+	local type=$2
+	local variable=$3
+
+	case $type in
+		vec2)
+			printf "\t\t%s\n" "void ${class_name}::set${variable^}(float x, float y, float z, float w) const {
+	glUniform4f(${variable}_, x, y, z, w);
+}"
+			;;
+		vec3)
+			printf "\t\t%s\n" "void ${class_name}::set${variable^}(float x, float y, float z) const {
+	glUniform3f(${variable}_, x, y, z);
+}"
+			;;
+		vec4)
+			printf "\t\t%s\n" "void ${class_name}::set${variable^}(float x, float y, float z, float w) const;" >> tmp_h_file
+			printf "\t\t%s\n" "void ${class_name}::set${variable^}(float x, float y) const {
+	glUniform2f(${variable}_, x, y);
+}"
+			;;
+		float)
+			printf "\t\t%s\n" "void ${class_name}::set${variable^}(float value) const {
+	glUniform1f(${variable}_, value);
+}"
+			;;
+		mat4)
+			printf "\t\t%s\n" "void ${class_name}::set${variable^}(const mw::Matrix44<float>& matrix) const {
+	glUniformMatrix4fv(${variable}_, 1, false, matrix.data());
+}"
+			;;
+		*)
+			printf "\t\t%s\n" "Undefined uniform $variable" >&2
+			;;
+	esac
+}
+
+create_shader_h() {
+	local namespace=$1
+	local class_name=$2
+	local vertex_shader=$3
+	local fragment_shader=$4
+	
+	local vertex_size=$(calculate_vertex_size "$vertex_shader")
+
+	echo "#ifndef ${class_name^^}_H
+#define ${class_name^^}_H
+
+#include <mw/matrix44.h>
+
+#include <string>
+
+namespace $namespace {
+	
+	class $class_name {
+	public:
+		inline static constexpr unsigned int vertexSizeInBytes() {
+			return vertexSizeInFloat() * sizeof(GLfloat);
+		}
+
+		inline static constexpr unsigned int vertexSizeInFloat() {
+			return $vertex_size;
+		}
+	
+		$class_name();
+	
+		$class_name(std::string vShaderFile, std::string fShaderFile);
+
+		void useProgram() const;
+
+		void setVertexAttribPointer() const;	
+		"
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		variable=${variable^}
+		uniform_function_h $(echo "$line" | cut -d ' ' -f2) $variable
+	done < <(grep uniform "$vertex_shader")
+	
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		variable=${variable^}
+		uniform_function_h $(echo "$line" | cut -d ' ' -f2) $variable
+	done < <(grep uniform "$fragment_shader")
+	
+	printf "\n\t%s\n" "private:"
+
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		printf "\t\t%s\n" "int ${variable}_;"
+	done < <(grep attribute "$vertex_shader")
+	
+	printf "\t%s\n" "};
+	
+} // Namespace ${namespace}.
+"
+	printf "%s\n" "#endif // ${class_name^^}_H"
+}
+
+create_shader_cpp() {
+	local namespace=$1
+	local class_name=$2
+	local vertex_shader=$3
+	local fragment_shader=$4
+	
+	printf "#include \"${class_name,,}.h\"
+	
+namespace $namespace {
+	
+	$class_name::$class_name() {
+"
+
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		printf "\t\t%s\n" "${variable}_ = -1;"
+	done < <(grep attribute "$vertex_shader")
+	
+	printf "\t}
+	
+	$class_name::$class_name(std::string vShaderFile, std::string fShaderFile) {
+"
+	
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		printf "\t\t%s\n" "shader_.bindAttribute(${variable}) = -1;"
+	done < <(grep attribute "$vertex_shader")
+	
+	printf "\t\tshader_.loadAndLinkFromFile(vShaderFile, fShaderFile);
+		
+		shader_.useProgram();
+
+"
+	
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		printf "\t\t%s\n" "${variable} = shader_.getAttributeLocation(\"${variable}\");"
+	done < <(grep attribute "$vertex_shader")
+	
+	printf "\t}
+
+	void $class_name::useProgram() const {
+		shader_.useProgram();
+	}
+
+	void $class_name::setVertexAttribPointer() const {"
+	
+	local index=0
+	
+	while read -r line ; do
+		local type=$(echo "$line" | cut -d ' ' -f2)
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		
+		printf "\t%s\n" "
+		glEnableVertexAttribArray(${variable}_);
+		glVertexAttribPointer(${variable}_, vertexSizeInBytes(), GL_FLOAT, GL_FALSE, 0, (GLvoid*) (sizeof(GLfloat) * $index);"
+		case $type in
+			vec2)
+				(( index += 2))
+				;;
+			vec3)
+				(( index += 3))
+				;;
+			vec4)
+				(( index += 4))			
+				;;
+			float)
+				(( index += 1))
+				;;
+			mat4)
+				(( index += 4*4))
+				;;
+			*)
+				printf "\t%s\n" "Undefined attribute $variable" >&2
+				;;
+		esac
+	done < <(grep attribute "$vertex_shader")
+
+	printf "\t}
+	
+"
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		local type=$(echo "$line" | cut -d ' ' -f2)
+		#uniform_function_cpp $class_name $type $variable  >> $tmp_cpp_file
+	done < <(grep uniform $vertex_shader)
+	
+echo "} // Namespace ${namespace}."
+
+}
+
+main() {
+	local src_dir=$1
+	if [ -z $src_dir ]; then
+		printf "$0 error, missing source dir as 1:st argument." >&2
+		exit 1
+	fi
+
+	local namespace=$2
+	if [ -z $namespace ]; then
+		printf "$0 error, missing namespace as 2:st argument." >&2
+		exit 1
+	fi
+	
+	local vertex_shader=$3
+	if [ -z $vertex_shader ]; then
+		printf "$0 error, missing vertex_shader_filename as 3:st argument." >&2
+		exit 1
+	fi
+	
+	local fragment_shader=$4
+	if [ -z $fragment_shader ]; then
+		printf "$0 error, missing fragment_shader_filename as 4:st argument." >&2
+		exit 1
+	fi
+	
+	local class_name=$(basename $vertex_shader | cut -d '.' -f1)"Shader"
+	class_name=${class_name^}
+	
+	local geometry_shader=$5
+	if [ -z $geometry_shader ]; then
+		create_shader_h $namespace $class_name $vertex_shader $fragment_shader > $tmp_h_file
+		create_shader_cpp $namespace $class_name $vertex_shader $fragment_shader > $tmp_cpp_file
+	else
+		create_shader_h $namespace $class_name $vertex_shader $fragment_shader > $tmp_h_file
+		create_shader_cpp $namespace $class_name $vertex_shader $fragment_shader > $tmp_cpp_file
+	fi
+	
+	local h_file="$src_dir/${class_name,,}.h"
+	local cpp_file="$src_dir/${class_name,,}.cpp"
+		
+	cp $tmp_h_file $h_file
+	add_source_file_to_cmake $h_file
+	cp $tmp_cpp_file $cpp_file
+	add_source_file_to_cmake $cpp_file
+}
+
+main $@

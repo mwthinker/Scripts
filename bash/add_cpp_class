@@ -1,36 +1,42 @@
 #!/bin/bash
-if [ "$1" == "-h" ]; then	
-	printf "\nCreate a c++ class and add it to CMakeLists.txt\n"
-	printf "The script will ask questions to define the C++ class.\n"
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then	
+	printf "%s\n\n" "Create a C++ class and add it to CMakeLists.txt
+The script will ask questions to define the C++ class."
 	printf -- "------------------------other_name.h---------------------"
 	printf "
-namespace some_name {
+#ifndef OTHERNAME_H
+#define OTHERNAME_H
+	
+namespace any_name {
 
-	class Other_name {
-	public:
+   class Other_name {
+   public:
 
-	};
+   };
 
-} // some_name.
+} // ANY_NAME.
 
-#endif // CLASS_NAME_H\n"
+#endif // OTHERNAME_H\n"
 	printf -- "---------------------------------------------------------\n"
 	printf -- "------------------------other_name.cpp-------------------"
 	printf "
-#include \"$header_file\"
+#ifndef OTHERNAME_H
+#define OTHERNAME_H
 
-namespace some_name {
+#include \"other_name.h\"
 
-} // some_name.\n"
+namespace any_name {
+
+} // ANY_NAME.
+
+#endif // OTHERNAME_H\n"
 	printf -- "---------------------------------------------------------\n"
-	
 	exit 0
 fi
 
-
 main() {
 	printf "class name: "
-	read class_name
+	read -r class_name
 	if [ -z "$class_name" ]; then
 		printf "Aborted, no class name"
 		exit 1
@@ -39,16 +45,16 @@ main() {
 	read namespace	
 	
 	printf "Add cpp file [y/N]? "
-	read add_cpp
+	read -r add_cpp
 	
 	printf "source folder [src]: "
-	read src_folder
+	read -r src_folder
 	if [ -z "$src_folder" ]; then
 		src_folder="src"
 	fi
 	
 	printf "keyword [set(SOURCES]: "
-	read keyword
+	read -r keyword
 	if [ -z "$keyword" ]; then
 		keyword="set(SOURCES"
 	fi

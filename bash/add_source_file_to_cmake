@@ -1,9 +1,9 @@
 #!/bin/bash
-if [ "$1" == "-h" ]; then
-	printf "\nReads a cmake file and adds a file to the list defined by the keyword.\n"
-	printf "And prints the new content.\n"
-	printf "Usage: `basename $0` [filename] [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt'] \n"
-	printf "E.g.     \$ $0 'set(SOURCES' \n\n"
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	printf "%s\n\n" "Reads a cmake file and adds a file to the list defined by the keyword
+And prints the new content.
+Usage: $(basename $0) [filename] [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt']
+E.g: \$ $0 'set(SOURCES'"
 	exit 0
 fi
 
@@ -34,7 +34,7 @@ add_filename_to_list () {
 	local sources=""
 	
 	while read -r line ; do
-		if [[ $found_sources == 1 ]];then
+		if [[ $found_sources == 1 ]]; then
 			if [[ $line == *")"* ]];then
 				line=$(printf "$line" | cut -d ")" -f1)
 				if [ -n "$line" ];then
@@ -45,7 +45,7 @@ add_filename_to_list () {
 				sources="$sources\n$line"
 			fi
 		fi
-		if [[ $line == *"$keyword"* ]];then
+		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
 			found_sources=1
 		fi
 	done <"$cmake_file"
@@ -68,7 +68,7 @@ replace_sources() {
 	local content=""
 	
 	while read -r line ; do
-		if [[ $line == *"$keyword"* ]];then
+		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
 			found_sources=1
 			content="$content\n$keyword\n$new_sources\n)"
 		fi
