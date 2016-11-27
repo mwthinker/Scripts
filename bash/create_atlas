@@ -1,18 +1,23 @@
 #!/bin/bash
 
 display_help() {
-	printf "\n%s\n" "Creates a image atlas and a json file defining all sprites in pixi format.
+	echo "Usage: $(basename $0) OPTIONS [VERTEX_SHADER_FILE] [FRAGMENT_SHADER_FILE]
+
+OPTIONS:
+-h --help                show this help	
+-p --padding             padding default is 0
+-a --atlas               should be the name of the created atlas, default \"atlas.png\"
+-j --json                the name of the created json-file, default is the same name as the image.
+-m --min                 the min-size for widht/height in pixels, default is 0
+-M --max                 the max-height in pixels, default is 2048
+
+Creates a image atlas and a json file defining all sprites in pixi format.
 First non-flag and belonging argument is the image files to create the atlas of.
-	
-E.g. usage: create_atlas -p 30 -a TEST.png -j hej.json *.png"
-	
-	printf "\n%s\t%s%s\n" "-e | --expand" "If margin is greater than 0, then expand sprites whose file names match the expression in EXPAND by mirroring their edges." \
-	" This is useful for textures that will be used with OpenGL/WebGL's CLAMPTOEDGE."
-	printf "%s\t%s\n" "-p | --padding" "padding default is 0."
-	printf "%s\t%s\n" "-a | --atlas" 'should be the name of the created atlas, default "atlas.png".'
-	printf "%s\t%s\n" "-j | --json" "the name of the created json-file, default is the same name as the image. "
-	printf "%s\t%s\n" "-m | --min" "the min-size for widht/height in pixels, default is 0."
-	printf "%s\t%s\n\n" "-M | --max" "the max-height in pixels, default is 2048."
+
+Example:
+	Creates atlas named Test.png and json file named Test.json 
+	$(basename $0) -p 30 -a Test.png -j Test.json *.png
+"
 }
 
 while :; do

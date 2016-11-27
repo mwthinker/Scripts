@@ -1,26 +1,31 @@
 #!/bin/bash
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then	
-	printf "%s\n\n" "Create a C++ class and add it to CMakeLists.txt
-The script will ask questions to define the C++ class."
-	printf -- "------------------------other_name.h---------------------"
-	printf "
-#ifndef OTHERNAME_H
+	echo "Usage: $(basename $0) OPTIONS
+
+Create a C++ class and add it to CMakeLists.txt
+The script will ask questions to define the C++ class.
+
+OPTIONS:
+	-h --help                show this help
+"
+
+	printf -- "------------------------other_name.h---------------------\n"
+	echo "#ifndef OTHERNAME_H
 #define OTHERNAME_H
-	
+
 namespace any_name {
 
-   class Other_name {
-   public:
+	class Other_name {
+	public:
 
-   };
+	};
 
 } // ANY_NAME.
 
 #endif // OTHERNAME_H\n"
-	printf -- "---------------------------------------------------------\n"
-	printf -- "------------------------other_name.cpp-------------------"
-	printf "
-#ifndef OTHERNAME_H
+	printf -- "-----------------------------------------------------\n"
+	printf -- "--------------------other_name.cpp-------------------\n"
+	echo "#ifndef OTHERNAME_H
 #define OTHERNAME_H
 
 #include \"other_name.h\"
@@ -29,8 +34,8 @@ namespace any_name {
 
 } // ANY_NAME.
 
-#endif // OTHERNAME_H\n"
-	printf -- "---------------------------------------------------------\n"
+#endif // OTHERNAME_H"
+	printf -- "-----------------------------------------------------\n"
 	exit 0
 fi
 

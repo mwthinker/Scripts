@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-	printf "\n%s\n\n" "Install updates for the ubuntu distro."
+	echo "Usage: $(basename $0) OPTIONS
+
+Install updates for the ubuntu distro.
+runs: sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade
+
+OPTIONS:
+	-h --help                show this help
+"
 	exit 0
 fi
 

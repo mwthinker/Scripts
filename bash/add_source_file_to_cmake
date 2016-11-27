@@ -1,9 +1,17 @@
 #!/bin/bash
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-	printf "%s\n\n" "Reads a cmake file and adds a file to the list defined by the keyword
+	echo "Usage: $(basename $0) OPTIONS [filename] [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt']
+
+OPTIONS:
+	-h --help                show this help
+
+Reads a cmake file and adds a file to the list defined by the keyword
 And prints the new content.
-Usage: $(basename $0) [filename] [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt']
-E.g: \$ $0 'set(SOURCES'"
+
+Example:
+	Adds test.h to the soucre list.
+	$(basename $0) test.h
+"
 	exit 0
 fi
 

@@ -1,4 +1,19 @@
 #!/bin/bash
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo "Usage: $(basename $0) OPTIONS [project_name]
+
+Create a new mw C++ project using CMake.
+
+Call manually to add dependencies:
+git submodule add https://github.com/mwthinker/SdlGui.git
+git submodule update --init --recursive
+
+OPTIONS:
+	-h --help                show this help	
+"
+	exit 0
+fi
+
 if [ "$1" == "-h" ]; then
 	printf "\nCreate a new mw C++ project using CMake. \n"
 	printf "Usage: `basename $0` [project_name]\n\n"
