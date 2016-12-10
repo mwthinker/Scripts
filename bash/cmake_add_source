@@ -1,0 +1,52 @@
+#!/bin/bash
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo "Usage: $(basename $0) OPTIONS [filename] [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt']
+
+OPTIONS:
+	-h --help                show this help
+
+Reads a cmake file and adds a file to the list defined by the keyword
+And prints the new content.
+
+Example:
+	Adds test.h to the source list.
+	$(basename $0) test.h
+"
+	exit 0
+fi
+
+interactive=""
+if [ "$1" == "-i" ] || [ "$1" == "--interactive" ]; then
+	interactive="-i"
+	shift
+fi
+
+if [ -z "$1" ]; then
+	printf "$0 error, missing 1:st argument." >&2
+	exit 1
+else
+	filename=$1
+fi
+
+if [ -z "$2" ]; then
+	keyword="set(SOURCES"
+else
+	keyword=$2
+fi
+
+if [ -z "$3" ]; then
+	cmake_file="CMakeLists.txt"	
+else
+	cmake_file=$3
+fi
+
+main() {
+	# Remove empty lines.
+	local new_sources=$(cmake_list_sources $cmake_file "$keyword" | sed '/^$/d')
+	# Add new source file.
+	new_sources="$(printf "$new_sources\n$filename\n" | sort -u)"
+	
+	cmake_replace_sources $interactive $cmake_file "$keyword" $new_sources
+}
+
+main $@

@@ -76,10 +76,14 @@ uniform_function_h() {
 			echo "void set${variable}(float x, float y, float z) const;"
 			;;
 		vec4)
-			echo "void set${variable}(float x, float y, float z, float w) const;"
+			if [[ $variable = *[Cc][Oo][Ll][Oo][Rr]* ]]; then
+				echo "void set${variable}(const mw::Color<float>& color) const;"
+			else
+				echo "void set${variable}(float x, float y, float z, float w) const;"
+			fi
 			;;
 		float)
-			echo "void set${variable}(float value) const;" >> tmp_h_file
+			echo "void set${variable}(float value) const;"
 			;;
 		mat4)
 			echo "void set${variable}(const mw::Matrix44<float>& matrix) const;"
@@ -104,8 +108,8 @@ uniform_function_cpp() {
 
 	case $type in
 		vec2)
-			echo "void ${class_name}::set${variable^}(float x, float y, float z, float w) const {
-	glUniform4f(${variable}_, x, y, z, w);
+			echo "void ${class_name}::set${variable^}(float x, float y) const {
+	glUniform2f(${variable}_, x, y);
 }"
 			;;
 		vec3)
@@ -114,10 +118,15 @@ uniform_function_cpp() {
 }"
 			;;
 		vec4)
-			echo "void ${class_name}::set${variable^}(float x, float y, float z, float w) const;" >> tmp_h_file
-			echo "void ${class_name}::set${variable^}(float x, float y) const {
-	glUniform2f(${variable}_, x, y);
+			if [[ $variable = *[Cc][Oo][Ll][Oo][Rr]* ]]; then
+				echo "void ${class_name}::set${variable^}(const mw::Color<float>& color) const {
+	glUniform4f(${variable}_, color.red_, color.green_, color.blue_, color.alpha_);
 }"
+			else
+				echo "void ${class_name}::set${variable^}(float x, float y) const {
+	glUniform4f(${variable}_, x, y, z, w);
+}"
+			fi
 			;;
 		float)
 			echo "void ${class_name}::set${variable^}(float value) const {
@@ -128,6 +137,8 @@ uniform_function_cpp() {
 			echo "void ${class_name}::set${variable^}(const mw::Matrix44<float>& matrix) const {
 	glUniformMatrix4fv(${variable}_, 1, false, matrix.data());
 }"
+			;;
+		sampler2D)
 			;;
 		*)
 			echo "Undefined uniform $variable" >&2
@@ -151,7 +162,9 @@ create_shader_h() {
 	printf "#ifndef ${class_name^^}_H
 #define ${class_name^^}_H
 
+#include <mw/shader.h>
 #include <mw/matrix44.h>
+#include <mw/color.h>
 
 #include <string>"
 
@@ -189,7 +202,7 @@ public:
 	while read -r line ; do
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
 		variable=${variable^}
-		text="$text"$(uniform_function_h $(echo "$line" | cut -d ' ' -f2) $variable)
+		text="$text\n\t"$(uniform_function_h $(echo "$line" | cut -d ' ' -f2) $variable)
 	done < <(grep uniform "$fragment_shader")
 	
 	text="$text\n\nprivate:"
@@ -198,8 +211,20 @@ public:
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
 		text="$text\n\tint ${variable}_;"
 	done < <(grep attribute "$vertex_shader")
+
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		text="$text\n\tint ${variable}_;"
+	done < <(grep uniform "$vertex_shader")
+
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		text="$text\n\tint ${variable}_;"
+	done < <(grep uniform "$fragment_shader")
+
+	text="$text\n\tmw::Shader shader_;"
 	
-	text="$text\n}\n";
+	text="$text\n};\n";
 	
 	if [ $namespace ]; then
 		# Add tab to evry line.
@@ -243,7 +268,7 @@ $class_name::$class_name(std::string vShaderFile, std::string fShaderFile) {"
 	
 	while read -r line ; do
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
-		text="$text\n\tshader_.bindAttribute(${variable}) = -1;"
+		text="$text\n\tshader_.bindAttribute(\"${variable}\");"
 	done < <(grep attribute "$vertex_shader")
 	
 	text="$text
@@ -254,7 +279,7 @@ $class_name::$class_name(std::string vShaderFile, std::string fShaderFile) {"
 	
 	while read -r line ; do
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
-		text="$text\n\t${variable} = shader_.getAttributeLocation(\"${variable}\");"
+		text="$text\n\t${variable}_ = shader_.getAttributeLocation(\"${variable}\");"
 	done < <(grep attribute "$vertex_shader")
 	
 	text="$text
@@ -273,7 +298,7 @@ void $class_name::setVertexAttribPointer() const {"
 		
 		text="$text
 	glEnableVertexAttribArray(${variable}_);
-	glVertexAttribPointer(${variable}_, vertexSizeInBytes(), GL_FLOAT, GL_FALSE, 0, (GLvoid*) (sizeof(GLfloat) * $index);"
+	glVertexAttribPointer(${variable}_, vertexSizeInBytes(), GL_FLOAT, GL_FALSE, 0, (GLvoid*) (sizeof(GLfloat) * $index));"
 		case $type in
 			vec2)
 				(( index += 2))
@@ -297,13 +322,21 @@ void $class_name::setVertexAttribPointer() const {"
 	done < <(grep attribute "$vertex_shader")
 
 	text="$text
-}
-"
+}"
 	while read -r line ; do
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
 		local type=$(echo "$line" | cut -d ' ' -f2)
-		text="$text\n"$(uniform_function_cpp $class_name $type $variable)
+		text="$text\n\n"$(uniform_function_cpp $class_name $type $variable)
 	done < <(grep uniform $vertex_shader)
+
+	while read -r line ; do
+		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+		local type=$(echo "$line" | cut -d ' ' -f2)
+		local result=$(uniform_function_cpp $class_name $type $variable)
+		if [ ! -z "$result" ]; then
+			text="$text\n\n"$(uniform_function_cpp $class_name $type $variable)
+		fi
+	done < <(grep uniform $fragment_shader)
 	
 	if [ $namespace ]; then
 		printf "$text" | sed -e 's/^/\t/'
@@ -368,14 +401,14 @@ main() {
 	else 
 		cp $tmp_h_file $h_file
 	fi
-	add_source_file_to_cmake $h_file
+	cmake_add_source $h_file
 	
 	if [[ $interactive = 1 ]]; then
 		cp -i $tmp_cpp_file $cpp_file
 	else 
 		cp $tmp_cpp_file $cpp_file
 	fi
-	add_source_file_to_cmake $cpp_file
+	cmake_add_source $cpp_file
 }
 
 main $@

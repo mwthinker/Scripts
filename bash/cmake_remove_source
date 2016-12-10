@@ -1,0 +1,80 @@
+#!/bin/bash
+display_help() {
+	echo "Usage: $(basename $0) OPTIONS
+
+Remove a source file from a cmake file.
+
+OPTIONS:
+	-h --help                show this help
+	-i --interactive         ask for permission when modifing and removing files.
+	-k --keyword             set the keyword to the agrumnet provided, default value is \"src\".
+	-c --cmake_file          set the cmakefile to use as the agrumnet provided, default value is \"CMakeLists.txt\".
+
+Example:
+	$(basename $0) src/test.h
+"
+}
+
+main() {
+	local filename
+	local keyword="set(SOURCES"
+	local cmake_file=CMakeLists.txt
+	local interactive=""
+
+	while :; do
+		case "$1" in
+		-h | --help)
+				display_help
+				exit 0
+				;;
+		-k | --keyword)
+			shift		
+			keyword=$1
+			shift
+			;;
+		-i | --interactive)
+			interactive="-i"
+			shift
+			;;
+		-c | --cmake_file)
+			shift		
+			cmake_file=$1
+			shift
+			;;
+		--) # End of all options
+			shift
+			break
+			;;
+		-*)
+			echo "Error: Unknown option: $1" >&2
+			exit 1
+			;;
+		*)  # No more options
+			filename=$@
+			shift
+			break
+		esac
+	done
+
+	if [ -z $filename ]; then
+		echo "Aborted, missing filename as a parameter."
+		exit 1
+	fi
+
+	if [ ! -f $filename ]; then
+		echo "File does not exist."
+	fi
+
+	# Remove empty lines.
+	local new_sources=$(cmake_list_sources $cmake_file "$keyword" | sed '/^$/d')
+	if printf "$new_sources" | grep -sq $filename; then # Filename sin in the list?
+		new_sources=$(printf "$new_sources" | sed "\:$filename:d" | sort -u) # Remove the filename.
+		cp $interactive $cmake_file $cmake_file.backup
+		cmake_replace_sources $interactive $cmake_file "$keyword" $new_sources
+		rm $interactive $filename
+	else
+		echo "$filename not found in $cmake_file."
+	fi
+}
+
+main $@

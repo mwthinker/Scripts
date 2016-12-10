@@ -47,7 +47,7 @@ main() {
 		exit 1
 	fi
 	printf "namespace []: "
-	read namespace	
+	read -r namespace	
 	
 	printf "Add cpp file [y/N]? "
 	read -r add_cpp
@@ -68,12 +68,12 @@ main() {
 	cpp_file="$src_folder/${class_name,,}.cpp"
 	
 	if [ -f "$header_file" ]; then
-		printf "$header_file exist, abort" >&2
+		echo "$header_file exist, abort" >&2
 		exit 1
 	fi
 	
 	if [ -f "$cpp_file" ]; then
-		printf "$cpp_file exist, abort" >&2
+		echo "$cpp_file exist, abort" >&2
 		exit 1
 	fi
 		
@@ -107,11 +107,11 @@ namespace $namespace {
 	
 	cp "CMakeLists.txt" "CMakeLists.txt.backup"
 
-	add_source_file_to_cmake "$header_file" "$keyword"
+	cmake_add_source "$header_file" "$keyword"
 	
 	case $add_cpp in
 		[yY])
-			add_source_file_to_cmake "$cpp_file" "$keyword"
+			cmake_add_source "$cpp_file" "$keyword"
 			if [ -z "$namespace" ]; then
 				printf "#include \"${class_name,,}.h\"
 " > "$cpp_file"

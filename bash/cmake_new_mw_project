@@ -14,15 +14,6 @@ OPTIONS:
 	exit 0
 fi
 
-if [ "$1" == "-h" ]; then
-	printf "\nCreate a new mw C++ project using CMake. \n"
-	printf "Usage: `basename $0` [project_name]\n\n"
-	printf "Call manually to add dependencies:"
-	printf "git submodule add https://github.com/mwthinker/SdlGui.git\n"
-	printf "git submodule update --init --recursive\n\n"
-	exit 0
-fi
-
 if [ -z "$1" ]; then
 	printf "$0 error, missing 1:st argument." >&2
 	exit 1

@@ -1,0 +1,49 @@
+#!/bin/bash
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo "Usage: $(basename $0) OPTIONS [cmake_file='CMakeLists.txt'] [keyword='set(SOURCES']
+
+OPTIONS:
+	-h --help                show this help
+
+Reads a cmake file list the sources based on the keyword provided.
+And prints the result.
+
+Example:
+	List the sources in the CMakeLists.txt with keyword 'set(SOURCES'.
+	$(basename $0)
+"
+	exit 0
+fi
+
+main() {
+	local cmake_file=$1
+	if [ -n $cmake_file ]; then
+		cmake_file="CMakeLists.txt"
+	fi
+
+	local keyword=$2
+	if [ -n $keyword ]; then
+		keyword="set(SOURCES"
+	fi
+
+	local found_sources=0
+
+	while read -r line ; do
+		if [[ $found_sources == 1 ]]; then
+			if [[ $line == *")"* ]]; then
+				line=$(printf "$line" | cut -d ")" -f1)
+				if [ -n "$line" ]; then
+					echo $line
+				fi
+				break
+			else
+				echo $line
+			fi
+		fi
+		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
+			found_sources=1
+		fi
+	done < $cmake_file
+}
+
+main $@

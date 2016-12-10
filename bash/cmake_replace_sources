@@ -1,0 +1,66 @@
+#!/bin/bash
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+	echo "Usage: $(basename $0) OPTIONS [keyword='set(SOURCES'] [cmake_file='CMakeLists.txt'] [new_sources]
+
+OPTIONS:
+	-h --help                show this help
+	-i --interactive         ask for permission when modifing and removing files.
+
+Replace the source list in $cmake_file with the new source list provided. 
+
+Example:
+	Replaces sources provided to cmake_file
+	$(basename $0) 'set(SOURCES' CMakeLists.txt test.h test.cpp
+"
+	exit 0
+fi
+
+main() {
+	local interactive=0
+	if [ "$1" == "-i" ] || [ "$1" == "--interactive" ]; then
+		interactive=1
+		shift
+	fi
+
+	local cmake_file=$1
+	shift
+	local keyword=$1
+	shift
+	local new_sources="$@"	
+	local content=""
+	
+	IFS=$'\n'
+	while read -r line ; do
+		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
+			found_sources=1
+			content="$content\n$keyword"
+			for source in "$@"
+			do
+				content="$content\n\t$source"
+			done
+			content="$content\n)"
+		fi
+		if [[ $found_sources == 1 ]];then
+			if [[ $line == *")"* ]];then
+				found_sources=0
+			fi
+		else
+			if [ -z "$content" ]; then
+				content="$line"
+			else
+				content="$content\n$line"
+			fi
+		fi
+	done < $cmake_file	
+
+	if [[ $interactive = 1 ]]; then
+		read -rp "$(basename $0): overwrite '$cmake_file'? " overwrite
+		if [[ $overwrite = [Yy] ]]; then
+			printf "$content\n" > $cmake_file
+		fi
+	else
+		printf "$content\n" > $cmake_file		
+	fi
+}
+
+main $@
