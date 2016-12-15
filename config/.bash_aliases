@@ -1,0 +1,5 @@
+alias l='ls -ltr'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias grep='grep --color=auto'
