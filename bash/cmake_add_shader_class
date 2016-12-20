@@ -295,30 +295,36 @@ void $class_name::setVertexAttribPointer() const {"
 	while read -r line ; do
 		local type=$(echo "$line" | cut -d ' ' -f2)
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+
+		local size=0	
 		
-		text="$text
-	glEnableVertexAttribArray(${variable}_);
-	glVertexAttribPointer(${variable}_, vertexSizeInBytes(), GL_FLOAT, GL_FALSE, 0, (GLvoid*) (sizeof(GLfloat) * $index));"
 		case $type in
 			vec2)
-				(( index += 2))
+				(( size = 2 ))
 				;;
 			vec3)
-				(( index += 3))
+				(( size = 3 ))
 				;;
 			vec4)
-				(( index += 4))			
+				(( size = 4 ))
 				;;
 			float)
-				(( index += 1))
+				(( size = 1 ))
 				;;
-			mat4)
-				(( index += 4*4))
+			mat4)				
+				(( size = 4*4 ))
 				;;
 			*)
+				continue
 				echo "Undefined attribute $variable" >&2
 				;;
 		esac
+		(( index += size ))
+		
+		text="$text
+	glEnableVertexAttribArray(${variable}_);
+	glVertexAttribPointer(${variable}_, $size, GL_FLOAT, GL_FALSE, vertexSizeInBytes(), (GLvoid*) (sizeof(GLfloat) * $index));"
+
 	done < <(grep attribute "$vertex_shader")
 
 	text="$text
