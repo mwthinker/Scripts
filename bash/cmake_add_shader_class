@@ -377,7 +377,7 @@ main() {
 	default_class_name=${default_class_name^}
 	local class_name
 	read -rp "class name [$default_class_name]: " class_name
-	if [ -z $class_name ]; then		
+	if [ -z $class_name ]; then
 		class_name=$default_class_name
 	fi
 
