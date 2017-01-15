@@ -16,13 +16,13 @@ Example:
 fi
 
 main() {
-	local cmake_file=$1
-	if [ -n $cmake_file ]; then
+	local cmake_file="$1"
+	if [ -z $cmake_file ]; then
 		cmake_file="CMakeLists.txt"
 	fi
 
-	local keyword=$2
-	if [ -n $keyword ]; then
+	local keyword="$2"
+	if [ -z $keyword ]; then
 		keyword="set(SOURCES"
 	fi
 
@@ -43,7 +43,7 @@ main() {
 		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
 			found_sources=1
 		fi
-	done < $cmake_file
+	done < "$cmake_file"
 }
 
 main $@

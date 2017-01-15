@@ -22,27 +22,30 @@ main() {
 		shift
 	fi
 
-	local cmake_file=$1
+	local cmake_file="$1"
 	shift
-	local keyword=$1
+	local keyword="$1"
 	shift
 	local new_sources="$@"	
 	local content=""
-	
+	local found_sources=0
+
 	IFS=$'\n'
 	while read -r line ; do
 		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
-			found_sources=1
-			content="$content\n$keyword"
-			for source in "$@"
-			do
-				content="$content\n\t$source"
-			done
-			content="$content\n)"
+			if [[ $found_sources = 0 ]]; then
+				found_sources=1
+				content="$content\n$keyword"
+				for source in "$@"
+				do
+					content="$content\n\t$source"
+				done
+				content="$content\n)"
+			fi
 		fi
-		if [[ $found_sources == 1 ]];then
-			if [[ $line == *")"* ]];then
-				found_sources=0
+		if [[ $found_sources = 1 ]]; then
+			if [[ $line == *")"* ]]; then
+				found_sources=2
 			fi
 		else
 			if [ -z "$content" ]; then
@@ -51,15 +54,15 @@ main() {
 				content="$content\n$line"
 			fi
 		fi
-	done < $cmake_file	
+	done < "$cmake_file"
 
 	if [[ $interactive = 1 ]]; then
 		read -rp "$(basename $0): overwrite '$cmake_file'? " overwrite
 		if [[ $overwrite = [Yy] ]]; then
-			printf "$content\n" > $cmake_file
+			printf "$content\n" > "$cmake_file"
 		fi
 	else
-		printf "$content\n" > $cmake_file		
+		printf "$content\n" > "$cmake_file"	
 	fi
 }
 

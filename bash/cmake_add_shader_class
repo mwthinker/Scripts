@@ -10,7 +10,7 @@ OPTIONS:
 	-i --interactive         ask for permission when overwriting the h and cpp file
 
 Example:
-	$(basename $0) data/graphic.fra.glsl data/graphic.ver.glsl
+	$(basename $0) data/graphic.ver.glsl data/graphic.fra.glsl
 	class name [BoardShader]: Test
 	namespace []: mw
 	source folder [src]:
@@ -109,32 +109,38 @@ uniform_function_cpp() {
 	case $type in
 		vec2)
 			echo "void ${class_name}::set${variable^}(float x, float y) const {
+	shader_.useProgram();
 	glUniform2f(${variable}_, x, y);
 }"
 			;;
 		vec3)
 			echo "void ${class_name}::set${variable^}(float x, float y, float z) const {
+	shader_.useProgram();
 	glUniform3f(${variable}_, x, y, z);
 }"
 			;;
 		vec4)
 			if [[ $variable = *[Cc][Oo][Ll][Oo][Rr]* ]]; then
 				echo "void ${class_name}::set${variable^}(const mw::Color<float>& color) const {
+	shader_.useProgram();
 	glUniform4f(${variable}_, color.red_, color.green_, color.blue_, color.alpha_);
 }"
 			else
 				echo "void ${class_name}::set${variable^}(float x, float y) const {
+	shader_.useProgram();
 	glUniform4f(${variable}_, x, y, z, w);
 }"
 			fi
 			;;
 		float)
 			echo "void ${class_name}::set${variable^}(float value) const {
+	shader_.useProgram();
 	glUniform1f(${variable}_, value);
 }"
 			;;
 		mat4)
 			echo "void ${class_name}::set${variable^}(const mw::Matrix44<float>& matrix) const {
+	shader_.useProgram();
 	glUniformMatrix4fv(${variable}_, 1, false, matrix.data());
 }"
 			;;
@@ -218,8 +224,10 @@ public:
 	done < <(grep uniform "$vertex_shader")
 
 	while read -r line ; do
-		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
-		text="$text\n\tint ${variable}_;"
+		if [[ ! "$line" = *sampler2D* ]]; then
+			local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+			text="$text\n\tint ${variable}_;"
+		fi
 	done < <(grep uniform "$fragment_shader")
 
 	text="$text\n\tmw::Shader shader_;"
@@ -227,7 +235,7 @@ public:
 	text="$text\n};\n";
 	
 	if [ $namespace ]; then
-		# Add tab to evry line.
+		# Add tab to every line.
 		printf "$text" | sed -e 's/^/\t/'
 		printf "\n} // Namespace ${namespace}.\n"
 	else
@@ -260,6 +268,13 @@ create_shader_cpp() {
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
 		text="$text\n\t${variable}_ = -1;"
 	done < <(grep attribute "$vertex_shader")
+
+	while read -r line ; do
+		if [[ ! "$line" = *sampler2D* ]]; then
+			local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+			text="$text\n\t${variable}_  = -1;"
+		fi
+	done < <(grep uniform "$vertex_shader")
 	
 	text="\n$text
 }
@@ -281,6 +296,13 @@ $class_name::$class_name(std::string vShaderFile, std::string fShaderFile) {"
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
 		text="$text\n\t${variable}_ = shader_.getAttributeLocation(\"${variable}\");"
 	done < <(grep attribute "$vertex_shader")
+
+	while read -r line ; do
+		if [[ ! "$line" = *sampler2D* ]]; then
+			local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
+			text="$text\n\t${variable}_ = shader_.getUniformLocation(\"${variable}\");"
+		fi
+	done < <(grep uniform "$vertex_shader")
 	
 	text="$text
 }
@@ -296,8 +318,12 @@ void $class_name::setVertexAttribPointer() const {"
 		local type=$(echo "$line" | cut -d ' ' -f2)
 		local variable=$(echo "$line" | cut -d ' ' -f3 | cut -d ';' -f1)
 
-		local size=0	
-		
+		local size=0
+
+		text="$text
+	glEnableVertexAttribArray(${variable}_);
+	glVertexAttribPointer(${variable}_, $size, GL_FLOAT, GL_FALSE, vertexSizeInBytes(), (GLvoid*) (sizeof(GLfloat) * $index));"
+
 		case $type in
 			vec2)
 				(( size = 2 ))
@@ -320,10 +346,6 @@ void $class_name::setVertexAttribPointer() const {"
 				;;
 		esac
 		(( index += size ))
-		
-		text="$text
-	glEnableVertexAttribArray(${variable}_);
-	glVertexAttribPointer(${variable}_, $size, GL_FLOAT, GL_FALSE, vertexSizeInBytes(), (GLvoid*) (sizeof(GLfloat) * $index));"
 
 	done < <(grep attribute "$vertex_shader")
 
