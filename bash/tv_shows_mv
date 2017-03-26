@@ -1,0 +1,123 @@
+#!/bin/bash
+display_help() {
+	echo "Usage: $(basename $0) OPTIONS
+
+Moves the tv-show episode/subtitle to the correct folder automatically.
+
+OPTIONS:
+	-h --help                show this help
+	-d --src                 the root folder where the tv-shows are moved to
+	-s --dst                 the root folder where the tv-shows are moved from
+
+Example:
+	$(basename $0)
+2017-03-26 19:10:34 tv_shows_mv called
+2017-03-26 19:10:34 Folder /home/mwthinker/Videos/Series/Black Sails/Season 4 created
+2017-03-26 19:10:34 Moved /home/mwthinker/downloaded/Black.Sails.S04E02.mkv to /home/mwthinker/Videos/Series/Black Sails/Season 4
+2017-03-26 19:10:34 Moved /home/mwthinker/downloaded/Black.Sails.S04E02.srt to /home/mwthinker/Videos/Series/Black Sails/Season 4
+2017-03-26 19:10:35 Folder /home/mwthinker/Videos/Series/The Americans/Season 5 created
+2017-03-26 19:10:35 Moved /home/mwthinker/downloaded/The.Americans.S05E02.mkv to /home/mwthinker/Videos/Series/The Americans/Season 5
+2017-03-26 19:10:35 Moved /home/mwthinker/downloaded/The.Americans.S05E02.srt to /home/mwthinker/Videos/Series/The Americans/Season 5
+"
+}
+
+print_date() {
+	date '+%Y-%m-%d %H:%M:%S'
+}
+
+# Move the movie file to dst folder in the correct folder and season.
+mv_tv_file() {
+	local dst="$1"
+	local file="$2"
+
+	# Is enviromental variable empty
+	if [ -z "$TV_SHOW_SEASON" ]; then
+		season_name="Season"
+	else
+		season_name="$TV_SHOW_SEASON"
+	fi
+
+	# Remove dots, the path and the last three characters.
+	simple_file=$(basename "$file" | tr -d '.' | sed 's/...$//')
+	ls "$dst" | while read tv_show_dir; do
+		local show=$(echo "$tv_show_dir" | tr -d ' ')
+
+		if echo "$simple_file" | grep -iq "$show" && (( ${#show} > 6 )); then
+			local season=$(tv_info -s "$file")
+			if (( "$season" == 0 )); then
+				echo $(print_date)" Moved $file to $dst/$tv_show_dir" >&2
+				mv "$file" "$dst/$tv_show_dir/."
+			else
+				if [[ ! -d "$dst/$tv_show_dir/$season_name $season" ]]; then
+					mkdir "$dst/$tv_show_dir/$season_name $season"
+					echo $(print_date)" Folder $dst/$tv_show_dir/$season_name $season created" >&2
+				fi
+				mv "$file" "$dst/$tv_show_dir/$season_name $season/."
+				echo $(print_date)" Moved $file to $dst/$tv_show_dir/$season_name $season" >&2
+			fi
+			break
+		fi
+	done
+}
+
+main() {
+	echo $(print_date)" $(basename $0) called" >&2
+
+	local src="$TV_SHOWS_SRC"
+	local dst="$TV_SHOWS_DST"
+
+	while :; do
+		case "$1" in
+		-h | --help)
+				display_help
+				exit 0
+				;;
+		-d | --dst)
+			shift
+			dst="$1"
+			shift
+			;;
+		-s | --src)
+			shift
+			src="$1"
+			shift
+			;;
+		--) # End of all options
+			shift
+			break
+			;;
+		-*)
+			echo "Error: Unknown option: $1" >&2
+			exit 1
+			;;
+		*)  # No more options
+			filename=$@
+			shift
+			break
+		esac
+	done
+
+	if [ ! -d "$dst" ]; then
+		echo $(print_date)" Destination folder does not exist" >&2
+		exit 1
+	fi
+
+	if [ ! -d "$src" ]; then
+		echo $(print_date)" Source folder does not exist" >&2
+		exit 1
+	fi
+
+	# Loop through all files in src folder.
+	find "$src" -type f | while read file; do	
+		local filename=$(basename "$file")
+		case "$filename" in
+			*.[mM][kK][vV] | *.[mM][pP]4 | *.[aA][vV][iI] | *.[sS][rR][tT])
+				mv_tv_file "$dst" "$file"
+				;;
+			*)
+				;;
+		esac
+	done
+}
+
+main "$@"

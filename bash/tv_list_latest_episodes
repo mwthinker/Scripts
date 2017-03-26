@@ -1,0 +1,104 @@
+#!/bin/bash
+display_help() {
+	echo "Usage: $(basename $0) OPTIONS
+
+List the latest tv-show episode/subtitle in your possesion.
+
+OPTIONS:
+	-h --help                show this help
+	-d --src                 the root folder where the tv-shows are located
+
+Example:
+	$(basename $0)"
+printf	"
+	Black.Sails.S04E09.mkv
+	Modern.Family.S08E17.mkv
+	Crashing.S01E05.mkv" | grep --color=always "[sS][0-9][0-9][eE][0-9][0-9]"
+echo ""
+}
+
+print_date() {
+	date '+%Y-%m-%d %H:%M:%S'
+}
+
+two_digits_str() {
+	local folder="$1"
+	for i in $folder; do 
+		if (( i < 10 )); then
+			printf "0$i\t"
+		elif (( i > 9 )); then
+			printf "$i\t"
+		fi
+	done
+	echo ""
+}
+
+list_tv_episodes() {
+	local folder="$1"
+
+	# Loop through all files in src folder.
+	find "$folder" -type f | while read file; do	
+		local filename=$(basename "$file")
+		case "$filename" in
+			*.[mM][kK][vV] | *.[mM][pP]4 | *.[aA][vV][iI])
+				#mv_tv_file "$dst" "$file"
+				local digits=$(tv_info "$file")
+				digits=$(two_digits_str "$digits")
+				printf "$digits$file\n"
+				;;
+			*)
+				;;
+		esac
+	done
+}
+
+print_latest_episode_in_each_tv_folder() {
+	src="$1"
+
+	ls "$src" | while read tv_folder; do
+		if [ -d "$src/$tv_folder" ]; then
+			local episode=$(list_tv_episodes "$src/$tv_folder" | sort -r | head -1 | cut -d$'\t' -f3)
+			episode=$(date '+%Y-%m-%d %H:%M:%S' -r "$episode")"\t"$(basename "$episode")
+			printf "$episode\n"
+		fi
+	done
+}
+
+main() {
+	local src="$TV_SHOWS_DST"
+	
+	while :; do
+		case "$1" in
+		-h | --help)
+				display_help
+				exit 0
+				;;
+		-s | --src)
+			shift
+			src="$1"
+			shift
+			;;
+		--) # End of all options
+			shift
+			break
+			;;
+		-*)
+			echo "Error: Unknown option: $1" >&2
+			exit 1
+			;;
+		*)  # No more options
+			filename=$@
+			shift
+			break
+		esac
+	done
+
+	if [ ! -d "$src" ]; then
+		echo $(print_date)" Source folder does not exist" >&2
+		exit 1
+	fi
+
+	print_latest_episode_in_each_tv_folder "$src" | sort -r | cut -d$'\t' -f2 | grep --color=always "[sS][0-9][0-9][eE][0-9][0-9]"
+}
+
+main "$@"
