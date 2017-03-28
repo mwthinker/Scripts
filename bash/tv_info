@@ -19,44 +19,73 @@ Example:
 get_season() {
 	local season=0
 	local file="$1"
-
+	
 	for i in {0..9}; do
 		case "$file" in
-		*[sS]0"$i"[eE]*)
-			season="$i"
+		*[sS]0$i[eE]*)
+			season=$i
 			break
 			;;		
-		*[sS]1"$i"[eE]*)
-			season="1$i"
+		*[sS]1$i[eE]*)
+			season=1$i
+			break
+			;;
+		*\.0$i[0-9][0-9]\.*)
+			season=$i
+			break
+			;;
+		*\.1$i[0-9][0-9]\.*)
+			season=1$i
 			break
 			;;
 		esac
 	done
-	printf "$season"
+	printf $season
 }
 
 # Prints the episode, if no episode, zero is printed
 get_episode() {
 	local episode=0
 	local file="$1"
-
+	
+	# Handle the format "S02E12"
 	for i in {0..9}; do
 		case "$file" in
-		*[sS][01][0-9][eE]0"$i"*)
-			episode="$i"
+		*[sS][01][0-9][eE]0$i*)
+			episode=$i
 			break
 			;;		
-		*[sS][01][0-9][eE]1"$i"*)
-			episode="1$i"
+		*[sS][01][0-9][eE]1$i*)
+			episode=1$i
 			break
 			;;
-		*[sS][01][0-9][eE]2"$i"*)
-			episode="2$i"
+		*[sS][01][0-9][eE]2$i*)
+			episode=2$i
 			break
 			;;
 		esac
 	done
-	printf "$episode"
+
+	# Handle the format "0212"
+	if (( $episode == 0 )); then
+		for i in {0..9}; do
+			case "$file" in
+			*\.[0-9][0-9]0$i\.*)
+				episode=$i
+				break
+				;;
+			*\.[0-9][0-9]1$i\.*)
+				episode=1$i
+				break
+				;;
+			*\.[0-9][0-9]2$i\.*)
+				episode=2$i
+				break
+				;;
+			esac
+		done
+	fi
+	printf $episode
 }
 
 main() {
