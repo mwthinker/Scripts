@@ -54,7 +54,7 @@ list_tv_episodes() {
 
 print_latest_episode_in_each_tv_folder() {
 	src="$1"
-
+	# Print the latest episode in each "tv-folder"
 	ls "$src" | while read tv_folder; do
 		if [ -d "$src/$tv_folder" ]; then
 			local episode=$(list_tv_episodes "$src/$tv_folder" | sort -r | head -1 | cut -d$'\t' -f3)
@@ -98,7 +98,8 @@ main() {
 		exit 1
 	fi
 
-	print_latest_episode_in_each_tv_folder "$src" | sort -r | cut -d$'\t' -f2 | grep --color=always "[sS][0-9][0-9][eE][0-9][0-9]"
+	# List the latest only the name of the latest episodes. And highlight the season and episode number.
+	print_latest_episode_in_each_tv_folder "$src" | sort -r | cut -d$'\t' -f2 | grep --color=always "[sS][0-9][0-9][eE][0-9][0-9]\|[0-1][0-9][0-9][0-9]"
 }
 
 main "$@"
