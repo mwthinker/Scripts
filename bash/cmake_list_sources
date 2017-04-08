@@ -40,7 +40,7 @@ main() {
 				echo $line
 			fi
 		fi
-		if [[ $line = *"$keyword"* ]] || [[ $line = *"${keyword^^}"* ]] || [[ $line = *"${keyword,,}"* ]]; then
+		if [[ "$line" = *"$keyword"* ]] || [[ "$line" = *"${keyword^^}"* ]] || [[ "$line" = *"${keyword,,}"* ]]; then
 			found_sources=1
 		fi
 	done < "$cmake_file"

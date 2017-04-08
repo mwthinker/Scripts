@@ -8,97 +8,124 @@ OPTIONS:
 	-h --help                show this help
 	-e --episode             list the episode
 	-s --season              list the season
+	-f --file-print          list the file after episode and season
+	-d --double-digits       print the result with double-digits
+	-q --quiet               quiet mode, no error messages is printed to stderror
 
 Example:
-	$(basename $0) \"the.big.bang.theory.S10E16.mp4\"
-	10	16
+	$(basename $0) \"the.big.bang.theory.S10E06.mp4\"
+	10	6
+
+	$(basename $0) -d \"the.big.bang.theory.S05E03.mp4\"
+	05	03
+
+	$(basename $0) -d -f \"the.big.bang.theory.S05E03.mp4\"
+	05	03 the.big.bang.theory.S05E03.mp4
 "
 }
 
-# Prints the season, if no season, zero is printed
+# Prints the episode, if no episode, zero is printed
 get_season() {
-	local season=0
 	local file="$1"
+	local double_digits=$2
 	
-	for i in {0..9}; do
-		case "$file" in
-		*[sS]0$i[eE]*)
-			season=$i
-			break
-			;;		
-		*[sS]1$i[eE]*)
-			season=1$i
-			break
-			;;
-		*\.0$i[0-9][0-9]\.*)
-			season=$i
-			break
-			;;
-		*\.1$i[0-9][0-9]\.*)
-			season=1$i
-			break
-			;;
-		esac
-	done
-	printf $season
+	# Handle the format "S02E12"
+	local season=$(expr match "$file" '.*[sS]\([0-9][0-9]\)[eE][0-9][0-9]')
+	if [ ! $season ]; then
+		# Handle the format "0212"
+		season=$(expr match "$file" '.*\([01][0-9]\)[0-9][0-9]')
+	fi
+
+	if [ ! $season ]; then
+		season=0
+	fi
+	
+	if (( $double_digits == 1 )); then
+		printf $season
+	else
+		printf $((10#$season)) # Only one digit e.g. 01 => 1
+	fi
 }
 
 # Prints the episode, if no episode, zero is printed
 get_episode() {
-	local episode=0
 	local file="$1"
+	local double_digits=$2
 	
 	# Handle the format "S02E12"
-	for i in {0..9}; do
-		case "$file" in
-		*[sS][01][0-9][eE]0$i*)
-			episode=$i
-			break
-			;;		
-		*[sS][01][0-9][eE]1$i*)
-			episode=1$i
-			break
-			;;
-		*[sS][01][0-9][eE]2$i*)
-			episode=2$i
-			break
-			;;
-		esac
-	done
-
-	# Handle the format "0212"
-	if (( $episode == 0 )); then
-		for i in {0..9}; do
-			case "$file" in
-			*\.[0-9][0-9]0$i\.*)
-				episode=$i
-				break
-				;;
-			*\.[0-9][0-9]1$i\.*)
-				episode=1$i
-				break
-				;;
-			*\.[0-9][0-9]2$i\.*)
-				episode=2$i
-				break
-				;;
-			esac
-		done
+	local episode=$(expr match "$file" '.*[sS][0-9][0-9][eE]\([0-9][0-9]\)')
+	if [ ! $episode ]; then
+		# Handle the format "0212"
+		episode=$(expr match "$file" '.*[01][0-9]\([0-9][0-9]\)')
 	fi
-	printf $episode
+
+	if [ ! $episode ]; then
+		episode=0
+	fi
+	
+	if (( $double_digits == 1 )); then
+		printf $episode
+	else
+		printf $((10#$episode)) # Only one digit e.g. 01 => 1
+	fi
+}
+
+print_info() {
+	local full_path="$1"
+	local filename=$(basename "$full_path")
+	local quiet=$2
+	local double_digits=$3
+	local file_print=$4
+	if [ "$filename" ]; then
+		if (( $episode == 0 )) && (( $season == 0 )); then
+			episode=1
+			season=1
+		fi
+
+		if (( $season == 1 )); then
+			get_season "$filename" $double_digits
+		fi
+
+		if (( $episode == 1)); then
+			if (( $season == 1 )); then
+				printf "\t"
+			fi
+			get_episode "$filename" $double_digits
+		fi
+
+		if (( $file_print == 1)); then
+			printf "\t$full_path"
+		fi
+
+		echo ""
+	else
+		if (( $quiet == 0 )); then
+			echo $(basename $0): Filename is missing as argument >&2
+		fi
+	fi
 }
 
 main() {
 	local episode=0
 	local season=0
-	local filename=""	
-
+	local filename=""
+	local quiet=0
+	local double_digits=0
+	local file_print=0
 	while :; do
 		case "$1" in
 		-h | --help)
-				display_help
-				exit 0
-				;;
+			display_help
+			exit 0
+			;;
+		-f | --file-print)
+			file_print=1
+			shift
+			;;
+		-d | --double-digits)
+			double_digits=1
+			shift
+			;;
 		-e | --episode)
 			episode=1
 			shift
@@ -107,9 +134,8 @@ main() {
 			season=1
 			shift
 			;;
-		-[se][se])
-			episode=1
-			season=1
+		-q | --quiet)
+			quiet=1
 			shift
 			;;
 		--) # End of all options
@@ -117,40 +143,25 @@ main() {
 			break
 			;;
 		-*)
-			echo "Error: Unknown option: $1" >&2
+			if (( $quiet == 0 )); then
+				echo "Error: Unknown option: $1" >&2
+			fi
 			exit 1
 			;;
 		*)  # No more options
-			filename=$@
+			filename="$@"
 			shift
 			break
 		esac
 	done
 
 	if [ ! "$filename" ]; then
-		echo File is missing as argument >&2
-		exit 1
+		while read -t 0.1 file; do
+			print_info "$file" $quiet $double_digits $file_print
+		done < /dev/stdin
+	else
+		print_info "$filename" $quiet $double_digits $file_print
 	fi
-
-	filename=$(basename "$filename")
-
-	if (( $episode == 0 )) && (( $season == 0 )); then
-		episode=1
-		season=1
-	fi
-
-	if (( $season == 1 )); then
-		get_season "$filename"
-	fi
-
-	if (( $episode == 1)); then
-		if (( $season == 1 )); then
-			printf "\t"
-		fi
-		get_episode "$filename"
-	fi
-
-	echo ""
 }
 
 main "$@"
