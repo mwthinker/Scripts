@@ -4,6 +4,9 @@ display_help() {
 
 Moves the tv-show episode/subtitle to the correct folder automatically.
 
+Default value of src is defined in the enviroment variable TV_SHOWS_SRC
+Default value of dst is defined in the enviroment variable TV_SHOWS_DST
+
 OPTIONS:
 	-h --help                show this help
 	-d --src                 the root folder where the tv-shows are moved to

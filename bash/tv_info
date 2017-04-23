@@ -10,7 +10,7 @@ OPTIONS:
 	-s --season              list the season
 	-f --file-print          list the file after episode and season
 	-d --double-digits       print the result with double-digits
-	-q --quiet               quiet mode, no error messages is printed to stderror
+	-q --quiet               quiet mode, no error messages are printed to stderror
 
 Example:
 	$(basename $0) \"the.big.bang.theory.S10E06.mp4\"
@@ -108,7 +108,6 @@ print_info() {
 main() {
 	local episode=0
 	local season=0
-	local filename=""
 	local quiet=0
 	local double_digits=0
 	local file_print=0
@@ -149,18 +148,20 @@ main() {
 			exit 1
 			;;
 		*)  # No more options
-			filename="$@"
-			shift
 			break
 		esac
 	done
+
+	local filename="$@"
 
 	if [ ! "$filename" ]; then
 		while read -t 0.1 file; do
 			print_info "$file" $quiet $double_digits $file_print
 		done < /dev/stdin
 	else
-		print_info "$filename" $quiet $double_digits $file_print
+		for filename in "$@"; do
+			print_info "$filename" $quiet $double_digits $file_print
+		done
 	fi
 }
 

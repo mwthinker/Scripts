@@ -18,7 +18,7 @@ echo ""
 }
 
 print_latest_episode_in_each_tv_folder() {
-	src="$1"
+	local src="$1"
 	# Print the latest episode in each "tv-folder"
 	ls "$src" | while read tv_folder; do
 		if [ -d "$src/$tv_folder" ]; then # Check if it is a folder?
