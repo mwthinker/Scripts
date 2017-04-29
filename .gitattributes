@@ -1,5 +1,6 @@
 # No LF normalization
-* text=false
+* text eol=lf
+/regedit/* text eol=crlf
 
 # Custom for Visual Studio
 *.cs     diff=csharp
