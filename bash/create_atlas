@@ -1,5 +1,4 @@
 #!/bin/bash
-
 display_help() {
 	echo "Usage: $(basename $0) OPTIONS [VERTEX_SHADER_FILE] [FRAGMENT_SHADER_FILE]
 
