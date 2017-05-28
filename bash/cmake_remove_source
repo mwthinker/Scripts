@@ -7,7 +7,7 @@ Remove a source file from a cmake file.
 OPTIONS:
 	-h --help                show this help
 	-i --interactive         ask for permission when modifing and removing files.
-	-k --keyword             set the keyword to the agrumnet provided, default value is \"src\".
+	-k --keyword             set the keyword to the argument provided, default value is \"set(SOURCES\".
 	-c --cmake_file          set the cmakefile to use as the agrumnet provided, default value is \"CMakeLists.txt\".
 
 Example:

@@ -32,7 +32,7 @@ namespace any_name {
 
 namespace any_name {
 
-} // ANY_NAME.
+} // Namespace ANY_NAME.
 
 #endif // OTHERNAME_H"
 	printf -- "-----------------------------------------------------\n"
@@ -99,7 +99,7 @@ namespace $namespace {
 
 	};
 
-} // $namespace.
+} // Namespace $namespace.
 	
 #endif // ${class_name^^}_H
 " > "$header_file"
@@ -120,7 +120,7 @@ namespace $namespace {
 
 namespace $namespace {
 
-} // $namespace.
+} // Namespace $namespace.
 " > "$cpp_file"
 			fi
 			;;
