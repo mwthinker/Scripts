@@ -3,7 +3,7 @@ if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 	echo "Usage: $(basename $0) OPTIONS
 
 Install updates for the ubuntu distro.
-runs: sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade
+runs: sudo apt update && sudo apt upgrade && sudo apt dist-upgrade
 
 OPTIONS:
 	-h --help                show this help
@@ -11,4 +11,4 @@ OPTIONS:
 	exit 0
 fi
 
-sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade
+sudo apt update && sudo apt upgrade && sudo apt dist-upgrade
