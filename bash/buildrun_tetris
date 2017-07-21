@@ -41,10 +41,10 @@ main() {
 		esac
 	done
 
-	printf "sudo apt-get update\n"
-	sudo apt-get update
-	printf "sudo apt-get install git cmake build-essential libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev libsdl2-image-dev libsdl2-mixer-dev libglew-dev\n"
-	sudo apt-get install git cmake build-essential libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev libsdl2-image-dev libsdl2-mixer-dev libglew-dev
+	printf "sudo apt update\n"
+	sudo apt update
+	printf "sudo apt install git cmake build-essential libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev libsdl2-image-dev libsdl2-mixer-dev libglew-dev libncurses5-dev\n"
+	sudo apt install git cmake build-essential libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev libsdl2-image-dev libsdl2-mixer-dev libglew-dev
 	
 	printf "git clone $link $install_dir\n"
     	
@@ -52,8 +52,8 @@ main() {
 	cd "$install_dir"
 	git checkout develop
 	git submodule update --init --recursive
-	mkdir build2
-	cd build2
+	mkdir build
+	cd build
 	
 	cmake ..
 	make
