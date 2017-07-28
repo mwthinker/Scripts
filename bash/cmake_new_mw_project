@@ -1,5 +1,6 @@
 #!/bin/bash
-if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+
+display_help() {
 	echo "Usage: $(basename $0) OPTIONS [project_name]
 
 Create a new mw C++ project using CMake.
@@ -7,33 +8,30 @@ Create a new mw C++ project using CMake.
 OPTIONS:
 	-h --help                show this help	
 	-n --no-git              git is not initialized
+	-g --gui                 use https://github.com/mwthinker/SdlGui.git submodule
 
 Call manually to add dependencies if \"-n\" flag is used:
 git init
-git submodule add https://github.com/mwthinker/SdlGui.git
+git submodule add https://github.com/mwthinker/MwLibrary2.git
 git submodule update --init --recursive
 "
-	exit 0
-fi
+}
 
-if [ "$1" == "-n" ] || [ "$1" == "--no-git" ]; then
-	no_git=1
-	shift
-fi
+print_cmake() {
+	local project_name="$1"
+	local gui="$2"
 
-if [ -z "$1" ]; then
-	printf "$0 error, missing 1:st argument." >&2
-	exit 1
-else
-	project_name="$1"
-fi
-
-main() {
-	src_folder="src"
-
-	local cmake_str="cmake_minimum_required(VERSION 3.6)
+	printf "cmake_minimum_required(VERSION 3.6)
 project($project_name)
-set(CMAKE_MODULE_PATH \${CMAKE_MODULE_PATH} \${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/ \${CMAKE_CURRENT_SOURCE_DIR}/SdlGui/MwLibrary2/cmake/Modules/)
+"
+
+if [ "$gui" ]; then
+	printf "set(CMAKE_MODULE_PATH \${CMAKE_MODULE_PATH} \${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/ \${CMAKE_CURRENT_SOURCE_DIR}/SdlGui/MwLibrary2/cmake/Modules/)"
+else
+	printf "set(CMAKE_MODULE_PATH \${CMAKE_MODULE_PATH} \${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/ \${CMAKE_CURRENT_SOURCE_DIR}/MwLibrary2/cmake/Modules/)"
+fi
+
+printf "
 
 if (MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -DWIN32)
@@ -66,7 +64,15 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 	find_package(Threads REQUIRED) # Due to a bug, which forces the user to link to Threads when using #include <thread>.
 endif (CMAKE_COMPILER_IS_GNUCXX)
 
-add_subdirectory(SdlGui)
+"
+
+if [ "$gui" ]; then
+	printf "add_subdirectory(SdlGui)"
+else
+	printf "add_subdirectory(MwLibrary2)"
+fi
+
+printf "
 
 file(COPY data/. DESTINATION \${CMAKE_CURRENT_BINARY_DIR}) # Copy data to build folder.
 
@@ -76,9 +82,16 @@ include_directories(
 	\${SDL2_MIXER_INCLUDE_DIRS} 
 	\${SDL2_IMAGE_INCLUDE_DIRS}
 	\${GLEW_INCLUDE_DIRS}
-	SdlGui/src
+"
+if [ "$gui" ]; then
+	printf "\tSdlGui/src
 	SdlGui/MwLibrary2/src
-	SdlGui/Signal/src
+	SdlGui/Signal/src"
+else
+	printf "\tMwLibrary2/src"
+fi
+
+	printf "
 )
 
 add_executable($project_name \${SOURCES})
@@ -90,40 +103,27 @@ endif ()
 
 target_link_libraries($project_name
 	MwLibrary2
-	SdlGui
+"
+if [ "$gui" ]; then
+	printf "\tMwLibrary2
+	SdlGui"
+else
+	printf "\tMwLibrary2"
+fi
+printf "
 	\${GLEW_LIBRARIES}
 	\${OPENGL_LIBRARIES}
 	\${SDL2_LIBRARIES}
 	\${SDL2_TTF_LIBRARIES}
 	\${SDL2_MIXER_LIBRARIES}
 	\${SDL2_IMAGE_LIBRARIES}
-	\${CMAKE_THREAD_LIBS_INIT})
+	\${CMAKE_THREAD_LIBS_INIT}
+)
 "
+}
 
-	mkdir "$project_name"
-	cd "$project_name"
-
-	if [ ! "$no_git" ]; then
-		git init
-		git submodule add https://github.com/mwthinker/SdlGui.git
-		git submodule update --init --recursive
-	fi
-
-	mkdir "$src_folder"
-	mkdir "data"
-	
-	mkdir "cmake"
-	mkdir "cmake/modules"
-	
-	printf "$cmake_str" > CMakeLists.txt
-	
-	local cpp_str="
-int main(int argc, char** argv) {
-	
-}\n"
-	printf "$cpp_str" > "$src_folder/main.cpp"
-
-	local git_ignore="*.wav
+print_gitignore() {
+	printf "*.wav
 *.7z
 *.zip
 *.mp3
@@ -131,9 +131,10 @@ int main(int argc, char** argv) {
 build
 build2
 "
-	printf "$git_ignore" > .gitignore
+}
 
-local git_attributes="# Auto detect text files and perform LF normalization
+print_gitattributes() {
+	printf "# Auto detect text files and perform LF normalization
 * text eol=lf
 
 *.ttf binary
@@ -159,7 +160,83 @@ local git_attributes="# Auto detect text files and perform LF normalization
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
 "
-	printf "$git_attributes" > .gitattributes
+}
+
+print_maincpp() {
+	printf "
+int main(int argc, char** argv) {
+	
+}
+"
+}
+
+main() {
+	local no_git
+	local gui
+	local project_name=""
+
+	while :; do
+		case "$1" in
+		-h | --help)
+			display_help
+			exit 0
+			;;
+		-n | --no-git)
+			no_git=1
+			shift
+			;;
+		-g | --gui)
+			gui=1
+			shift
+			;;
+		--) # End of all options
+			shift
+			break
+			;;
+		-*)
+			echo "Error: Unknown option: $1" >&2
+			exit 1
+			;;
+		*)  # No more options
+			project_name="$@"
+			shift
+			break
+		esac
+	done
+	
+	if [ -z "$project_name" ]; then
+		echo "Missing argument for [project_name]." >&2
+		exit 1
+	fi
+
+	src_folder="src"
+
+	mkdir "$project_name"
+	cd "$project_name"
+
+	if [ ! "$no_git" ]; then
+		git init
+		if [ "$gui" ]; then
+			git submodule add https://github.com/mwthinker/SdlGui.git
+		else
+			git submodule add https://github.com/mwthinker/MwLibrary2.git
+		fi
+		git submodule update --init --recursive
+	fi
+
+	mkdir "$src_folder"
+	mkdir "data"
+	
+	mkdir "cmake"
+	mkdir "cmake/modules"
+	
+	print_cmake $project_name $gui > CMakeLists.txt
+	
+	print_maincpp > "$src_folder/main.cpp"
+
+	print_gitignore > .gitignore
+
+	print_gitattributes > .gitattributes
 }
 
 main $@
