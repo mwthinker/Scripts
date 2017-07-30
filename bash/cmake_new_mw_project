@@ -102,7 +102,6 @@ if (MSVC)
 endif ()
 
 target_link_libraries($project_name
-	MwLibrary2
 "
 if [ "$gui" ]; then
 	printf "\tMwLibrary2
