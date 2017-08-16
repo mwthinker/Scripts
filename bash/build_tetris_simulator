@@ -1,0 +1,54 @@
+#!/bin/bash
+display_help() {
+	echo "Usage: $(basename $0) OPTIONS
+
+Downloads and build TetrisEngineTest and gets a data file called randomBlockTypes.
+Downloads from github \"https://github.com/mwthinker/Tetris.git\" the latest develop branch.
+
+OPTIONS:
+	-h --help                show this help
+
+Example:
+	Download and build TetrisEngineTest and gets a data file called randomBlockTypes.
+	$(basename $0)
+"
+}
+
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then	
+	display_help
+	exit 0
+fi
+
+main() {
+	local link="https://github.com/mwthinker/Tetris.git"
+	local install_dir="$(pwd)"
+
+	local tmp_dir=$(mktemp -d)
+	cd $tmp_dir
+
+	git clone "$link" .
+	git checkout develop
+	# Download submodule dependencies.
+	git submodule update --init --recursive
+
+	printf 'cmake_minimum_required(VERSION 2.8)
+project(TetrisEngineBuild)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/ ${CMAKE_CURRENT_SOURCE_DIR}/SdlGui/MwLibrary2/cmake/Modules/)
+set(CMAKE_CXX_FLAGS "-std=c++1y")
+set(CMAKE_BUILD_TYPE "Release" CACHE INTERNAL "Build type.")
+add_subdirectory(Calculator)
+add_subdirectory(TetrisEngine)
+' > CMakeLists.txt
+
+	mkdir build
+	cd build
+	cmake -D "TetrisEngineTest=1" ..
+	make
+
+	# Ask for permission if the file already exists.
+	mv -i TetrisEngine/TetrisEngineTest "$install_dir"/.
+	mv -i TetrisEngine/randomBlockTypes "$install_dir"/.
+	rm -rf $tmp_dir
+}
+
+main "$@"
