@@ -11,7 +11,7 @@ OPTIONS:
 fi
 
 if [ -z "$1" ]; then
-	printf "$0 error, missing 1:st argument." >&2
+	echo "$0 error, missing 1:st argument." >&2
 	exit 1
 else
 	project_name=$1
@@ -20,11 +20,11 @@ fi
 main() {
 	src_folder="src"
 
-	local cmake_str="cmake_minimum_required(VERSION 3.6)
+	local cmake_str="cmake_minimum_required(VERSION 2.8)
 project($project_name)
 set(CMAKE_MODULE_PATH \${CMAKE_MODULE_PATH} \${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/)
 if (NOT MSVC)
-	set(CMAKE_CXX_FLAGS \"-std=c++14\")
+	set(CMAKE_CXX_FLAGS \"-std=c++1y\")
 	option(Debug \"Set projects to debug mode.\")
 	if (Debug)
 		set(CMAKE_BUILD_TYPE \"Debug\" CACHE INTERNAL \"Build type.\")

@@ -1,0 +1,46 @@
+#!/bin/bash
+display_help() {
+	echo "Usage: $(basename $0) OPTIONS [project_dir]
+
+Build and run tetris.
+
+OPTIONS:
+	-h --help                show this help
+
+Example:
+	Build and run tetris.
+	$(basename $0)
+"
+}
+
+simulate_tetris() {
+	local blockMeanHeight=10
+	local bumpiness=10
+	local columnHoles=10
+	local edges=10
+	local rowSumHeight=10
+
+	local ai
+
+	nbr=0
+	for blockMeanHeight in $(seq -5 1 5); do
+		for bumpiness in $(seq -5 1 5); do
+			for columnHoles in $(seq -5 1 5); do
+				for edges in $(seq -5 1 5); do
+					for rowSumHeight in $(seq -5 1 5); do
+						# "-2*rowHoles - 5*columnHoles - 1*rowSumHeight / (1 + rowHoles) - 2*blockMeanHeight"
+						ai="blockMeanHeight*$blockMeanHeight+bumpiness*$bumpiness+columnHoles*$columnHoles+edges*$edges+rowSumHeight*$rowSumHeight/(1+rowHoles)"
+						printf "$ai\t"
+						./TetrisEngineTest -a "$ai" -f randomBlockTypes -m 10000 -t
+					done
+				done
+			done
+		done
+	done
+}
+
+main() {
+	simulate_tetris 
+}
+
+main "$@"

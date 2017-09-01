@@ -21,7 +21,7 @@ print_cmake() {
 	local project_name="$1"
 	local gui="$2"
 
-	printf "cmake_minimum_required(VERSION 3.6)
+	printf "cmake_minimum_required(VERSION 2.8)
 project($project_name)
 "
 

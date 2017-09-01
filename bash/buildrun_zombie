@@ -1,0 +1,64 @@
+#!/bin/bash
+display_help() {
+	echo "Usage: $(basename $0) OPTIONS [project_dir]
+
+Build and run zombie.
+
+OPTIONS:
+	-h --help                show this help
+
+Example:
+	Build and run tetzombieris.
+	$(basename $0)
+"
+}
+
+main() {
+    local link="https://github.com/mwthinker/Zombie.git"
+	local install_dir="Zombie"
+
+	while :; do
+		case "$1" in
+		-h | --help)
+			display_help
+			exit 0
+			;;
+		--) # End of all options
+			shift
+			break
+			;;
+		-*)
+			echo "Error: Unknown option: $1" >&2
+			exit 1
+			;;
+		*)  # No more options
+			if [ ! -z $1 ]; then
+				install_dir="$1"
+			fi
+            # No more options left.
+            break
+			;;
+		esac
+	done
+
+	printf "sudo apt update\n"
+	sudo apt update
+	printf "sudo apt install git cmake build-essential libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev libsdl2-image-dev libsdl2-mixer-dev libglew-dev libncurses5-dev\n"
+	sudo apt install git cmake build-essential libsdl2-dev libsdl2-ttf-dev libsdl2-net-dev libsdl2-image-dev libsdl2-mixer-dev libglew-dev libncurses5-dev
+	
+	printf "git clone $link $install_dir\n"
+    	
+	git clone "$link" "$install_dir"
+	cd "$install_dir"
+	git checkout develop
+	git submodule update --init --recursive
+	mkdir build
+	cd build
+	
+	cmake ..
+	make
+	
+	./Zombie
+}
+
+main "$@"
