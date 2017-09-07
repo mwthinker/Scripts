@@ -3,3 +3,4 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 alias grep='grep --color=auto'
+alias sudo='sudo ' # Make alias work when using sudo
