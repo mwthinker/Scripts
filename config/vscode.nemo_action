@@ -1,0 +1,10 @@
+[Nemo Action]
+Active=true
+Name=Open Visual Studio Code
+Comment=Open Visual Studio Code. Action will be applied to %F
+Exec=code %F
+Icon-Name=visual-studio-code
+Selection=any
+Extensions=any;
+Dependencies=code;
+EscapeSpaces=true
