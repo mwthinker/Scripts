@@ -1,3 +1,6 @@
-:color desert
-
 set shiftwidth=4
+
+set backspace=indent,eol,start
+syntax on
+
+colorscheme desert

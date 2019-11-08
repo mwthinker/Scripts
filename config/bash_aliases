@@ -1,6 +1,3 @@
-alias l='ls -ltr'
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
+alias l='ls -ltrh'
 alias grep='grep --color=auto'
 alias sudo='sudo ' # Make alias work when using sudo
