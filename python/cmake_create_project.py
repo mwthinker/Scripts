@@ -96,7 +96,15 @@ def create_file(full_filename: str, content: str, verbose=False, newline="\n"):
 	if verbose:
 		print("\t" + full_filename)
 
-def create_files(project_name: str, cmake: str, verbose=False):
+def create_files(project_name: str, cmake: str, use_project_path: bool, verbose=False):
+	if use_project_path:
+		project_path = os.getenv("GITHUB", ".")
+		try:
+			os.chdir(project_path)
+			print("GITHUB=" + project_path)
+		except:
+			print("Aborting, GITHUB=" + project_path + " folder does not exist")
+
 	try:
 		os.mkdir(project_name)
 	except OSError as e:
@@ -120,11 +128,12 @@ def create_files(project_name: str, cmake: str, verbose=False):
 
 def run(args):
 	cmake_content = CMAKE.replace("$project_name", args.project_name)
-	create_files(args.project_name, cmake_content, args.verbose)
+	create_files(args.project_name, cmake_content, args.github, args.verbose)
 
 def main():
 	parser = argparse.ArgumentParser(description = "Create a cmake template for your project")	
 	parser.add_argument("-p", "--project_name", help="name of the project (no spaces)", dest="project_name", required=True)
+	parser.add_argument("-g", "--github", help="create project using GITHUB enviroment variable", dest="github", action="store_const", const=True)
 	parser.add_argument("-v", "--verbose", help="verbose information", dest="verbose", action="store_const", const=True)
 	parser.set_defaults(func=run)
 	args=parser.parse_args()
