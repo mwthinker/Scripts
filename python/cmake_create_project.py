@@ -2,6 +2,47 @@
 import argparse
 import os
 
+GIT_IGNORE="""
+*~
+*.layout
+*.depend
+/build*
+/.idea/
+/cmake-build-debug/
+
+# Windows image file caches
+Thumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Mac crap
+.DS_Store
+"""
+
+GIT_ATTRIBUTES="""# Auto detect text files and perform LF normalization
+* text eol=lf
+install_vcpkg_dependencies.bat eol=crlf
+
+*.ttf binary
+*.png binary
+*.gif binary
+*.bmp binary
+"""
+
+INSTALL_VCPKG_DEPENDENCIES_BAT="""
+@echo off
+for /f "delims=" %%a in (vcpkg_dependencies) DO (
+	vcpkg install %%a
+)
+"""
+
+INSTALL_VCPKG_DEPENDENCIES_SH="""#!/bin/sh -e
+while read -r dependency; do
+	vcpkg install $dependency
+done < vcpkg_dependencies
+"""
+
 CMAKE = """cmake_minimum_required(VERSION 3.11...3.14)
 # 3.11 support for FetchContent
 # 3.14 support for Visual Studio 2019
@@ -48,14 +89,14 @@ int main() {
 }
 """
 
-def create_file(full_filename, content, verbose=False):
-	file = open(full_filename, "w", newline='\n')
+def create_file(full_filename: str, content: str, verbose=False, newline="\n"):
+	file = open(full_filename, "w", newline=newline)
 	file.write(content)
 	file.close()
 	if verbose:
 		print("\t" + full_filename)
 
-def create_files(project_name, cmake, verbose=False):
+def create_files(project_name: str, cmake: str, verbose=False):
 	try:
 		os.mkdir(project_name)
 	except OSError as e:
@@ -70,6 +111,12 @@ def create_files(project_name, cmake, verbose=False):
 	create_file(project_name + "/CMakelists.txt", cmake, verbose)
 	os.mkdir(project_name + "/src")
 	create_file(project_name + "/src/main.cpp", CPP_MAIN, verbose)
+
+	create_file(project_name + "/.gitignore", GIT_IGNORE, verbose)
+	create_file(project_name + "/.gitattributes", GIT_ATTRIBUTES, verbose)
+	create_file(project_name + "/install_vcpkg_dependencies.bat", INSTALL_VCPKG_DEPENDENCIES_BAT, verbose, "\r\n")
+	create_file(project_name + "/install_vcpkg_dependencies.sh", INSTALL_VCPKG_DEPENDENCIES_SH, verbose)
+	create_file(project_name + "/vcpkg_dependencies", "\n", verbose)
 
 def run(args):
 	cmake_content = CMAKE.replace("$project_name", args.project_name)
