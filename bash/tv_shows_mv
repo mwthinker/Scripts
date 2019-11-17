@@ -9,8 +9,8 @@ Default value of dst is defined in the enviroment variable TV_SHOWS_DST
 
 OPTIONS:
 	-h --help                show this help
-	-d --src                 the root folder where the tv-shows are moved to
-	-s --dst                 the root folder where the tv-shows are moved from
+	-s --src                 the root folder where the tv-shows are moved to
+	-d --dst                 the root folder where the tv-shows are moved from
 
 Example:
 	$(basename $0)
