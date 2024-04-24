@@ -37,6 +37,7 @@ def vcpkg_list_deps(vcpkg_json_path):
   for dep in data['dependencies']:
     bash_command = f"{vcpkg} depend-info {dep} --format=tree"
     #print(f"Running command: {bash_command}")
+    bash_command = f"{vcpkg} depend-info {dep} --format=tree 2>&1"
     subprocess.run(bash_command, shell=True)
 
 def print_usage():
